@@ -1,0 +1,329 @@
+SELECT * 
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+
+#Counting rows
+SELECT COUNT(*) AS total_rows
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`;
+
+#Finding duplicate org_code
+SELECT
+  Org_Code,
+  COUNT(*) AS number_of_rows
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+GROUP BY Org_Code
+HAVING COUNT(*) > 1
+ORDER BY number_of_rows DESC;
+
+
+#Finding Null or blank values
+SELECT *
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+WHERE Org_Code IS NULL
+   OR TRIM(Org_Code) = '';
+
+#Across several columns
+SELECT
+  COUNT(*) AS total_rows,
+  COUNTIF(Org_Code IS NULL OR TRIM(Org_Code) = '')
+    AS missing_org_codes,
+  COUNTIF(Parent_org IS NULL OR TRIM(Parent_org) = '')
+    AS missing_parent_orgs,
+  COUNTIF(Org_name IS NULL OR TRIM(Org_name) = '')
+    AS missing_org_names
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`;
+
+#Finding negative values
+SELECT *
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+WHERE SAFE_CAST(`A_E_attendances_Type_1` AS INT64) < 0
+   OR SAFE_CAST(`A_E_attendances_Type_2` AS INT64) < 0
+   OR SAFE_CAST(`A_E_attendances_Other_A_E_Department` AS INT64) < 0
+   OR SAFE_CAST(`A_E_attendances_Booked_Appointments_Type_1` AS INT64) < 0
+   OR SAFE_CAST(`A_E_attendances_Booked_Appointments_Type_2` AS INT64) < 0
+   OR SAFE_CAST(`A_E_attendances_Booked_Appointments_Other_Department` AS INT64) < 0
+   OR SAFE_CAST(`Attendances_over_4hrs_Type_1` AS INT64) < 0
+   OR SAFE_CAST(`Attendances_over_4hrs_Type_2` AS INT64) < 0
+   OR SAFE_CAST(`Attendances_over_4hrs_Other_Department` AS INT64) < 0
+   OR SAFE_CAST(`Attendances_over_4hrs_Booked_Appointments_Type_1` AS INT64) < 0
+   OR SAFE_CAST(`Attendances_over_4hrs_Booked_Appointments_Type_2` AS INT64) < 0
+   OR SAFE_CAST(`Attendances_over_4hrs_Booked_Appointments_Other_Department` AS INT64) < 0
+   OR SAFE_CAST(`Patients_who_have_waited_4_12_hs_from_DTA_to_admission` AS INT64) < 0
+   OR SAFE_CAST(`Patients_who_have_waited_12__hrs_from_DTA_to_admission` AS INT64) < 0
+   OR SAFE_CAST(`Emergency_admissions_via_A_E___Type_1` AS INT64) < 0
+   OR SAFE_CAST(`Emergency_admissions_via_A_E___Type_2` AS INT64) < 0
+   OR SAFE_CAST(`Emergency_admissions_via_A_E___Other_A_E_department` AS INT64) < 0
+   OR SAFE_CAST(`Other_emergency_admissions` AS INT64) < 0;
+
+
+#Finding impossible values
+
+SELECT *
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+WHERE
+  SAFE_CAST(`Attendances_over_4hrs_Type_1` AS INT64)
+    > SAFE_CAST(`A_E_attendances_Type_1` AS INT64)
+
+  OR SAFE_CAST(`Attendances_over_4hrs_Type_2` AS INT64)
+    > SAFE_CAST(`A_E_attendances_Type_2` AS INT64)
+
+  OR SAFE_CAST(`Attendances_over_4hrs_Other_Department` AS INT64)
+    > SAFE_CAST(`A_E_attendances_Other_A_E_Department` AS INT64)
+
+  OR SAFE_CAST(`Attendances_over_4hrs_Booked_Appointments_Type_1` AS INT64)
+    > SAFE_CAST(`A_E_attendances_Booked_Appointments_Type_1` AS INT64)
+
+  OR SAFE_CAST(`Attendances_over_4hrs_Booked_Appointments_Type_2` AS INT64)
+    > SAFE_CAST(`A_E_attendances_Booked_Appointments_Type_2` AS INT64)
+
+  OR SAFE_CAST(`Attendances_over_4hrs_Booked_Appointments_Other_Department` AS INT64)
+    > SAFE_CAST(`A_E_attendances_Booked_Appointments_Other_Department` AS INT64);
+
+
+#Finding values that can't be turned into numbers
+
+
+WITH numeric_checks AS (
+  SELECT 'A_E_attendances_Type_1' AS column_name,
+         CAST(`A_E_attendances_Type_1` AS STRING) AS original_value
+  FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+
+  UNION ALL
+  SELECT 'A_E_attendances_Type_2',
+         CAST(`A_E_attendances_Type_2` AS STRING)
+  FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+
+  UNION ALL
+  SELECT 'A_E_attendances_Other_A_E_Department',
+         CAST(`A_E_attendances_Other_A_E_Department` AS STRING)
+  FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+
+  UNION ALL
+  SELECT 'A_E_attendances_Booked_Appointments_Type_1',
+         CAST(`A_E_attendances_Booked_Appointments_Type_1` AS STRING)
+  FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+
+  UNION ALL
+  SELECT 'A_E_attendances_Booked_Appointments_Type_2',
+         CAST(`A_E_attendances_Booked_Appointments_Type_2` AS STRING)
+  FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+
+  UNION ALL
+  SELECT 'A_E_attendances_Booked_Appointments_Other_Department',
+         CAST(`A_E_attendances_Booked_Appointments_Other_Department` AS STRING)
+  FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+
+  UNION ALL
+  SELECT 'Attendances_over_4hrs_Type_1',
+         CAST(`Attendances_over_4hrs_Type_1` AS STRING)
+  FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+
+  UNION ALL
+  SELECT 'Attendances_over_4hrs_Type_2',
+         CAST(`Attendances_over_4hrs_Type_2` AS STRING)
+  FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+
+  UNION ALL
+  SELECT 'Attendances_over_4hrs_Other_Department',
+         CAST(`Attendances_over_4hrs_Other_Department` AS STRING)
+  FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+
+  UNION ALL
+  SELECT 'Attendances_over_4hrs_Booked_Appointments_Type_1',
+         CAST(`Attendances_over_4hrs_Booked_Appointments_Type_1` AS STRING)
+  FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+
+  UNION ALL
+  SELECT 'Attendances_over_4hrs_Booked_Appointments_Type_2',
+         CAST(`Attendances_over_4hrs_Booked_Appointments_Type_2` AS STRING)
+  FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+
+  UNION ALL
+  SELECT 'Attendances_over_4hrs_Booked_Appointments_Other_Department',
+         CAST(`Attendances_over_4hrs_Booked_Appointments_Other_Department` AS STRING)
+  FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+
+  UNION ALL
+  SELECT 'Patients_who_have_waited_4_12_hs_from_DTA_to_admission',
+         CAST(`Patients_who_have_waited_4_12_hs_from_DTA_to_admission` AS STRING)
+  FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+
+  UNION ALL
+  SELECT 'Patients_who_have_waited_12__hrs_from_DTA_to_admission',
+         CAST(`Patients_who_have_waited_12__hrs_from_DTA_to_admission` AS STRING)
+  FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+
+  UNION ALL
+  SELECT 'Emergency_admissions_via_A_E___Type_1',
+         CAST(`Emergency_admissions_via_A_E___Type_1` AS STRING)
+  FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+
+  UNION ALL
+  SELECT 'Emergency_admissions_via_A_E___Type_2',
+         CAST(`Emergency_admissions_via_A_E___Type_2` AS STRING)
+  FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+
+  UNION ALL
+  SELECT 'Emergency_admissions_via_A_E___Other_A_E_department',
+         CAST(`Emergency_admissions_via_A_E___Other_A_E_department` AS STRING)
+  FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+
+  UNION ALL
+  SELECT 'Other_emergency_admissions',
+         CAST(`Other_emergency_admissions` AS STRING)
+  FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+)
+
+SELECT
+  column_name,
+  original_value,
+  COUNT(*) AS occurrences
+FROM numeric_checks
+WHERE original_value IS NOT NULL
+  AND TRIM(original_value) != ''
+  AND SAFE_CAST(TRIM(original_value) AS INT64) IS NULL
+GROUP BY column_name, original_value
+ORDER BY occurrences DESC;
+
+#Finding england total labelled
+SELECT
+  Org_Code,
+  Parent_org,
+  Org_name,
+  A_E_attendances_Type_1
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+WHERE LOWER(Org_name) LIKE '%england%'
+   OR LOWER(Org_name) LIKE '%total%';
+
+#COMPARE PROVIDER SUM WITH TOTAL
+
+#for attendance type 1
+SELECT
+  SUM(SAFE_CAST(A_E_attendances_Type_1 AS INT64))
+    AS total_type_1
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+WHERE Org_name != 'TOTAL';
+
+# A&E Attendance type 2
+SELECT
+  SUM(SAFE_CAST(A_E_attendances_Type_2 AS INT64))
+    AS total_type_2
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+WHERE Org_name != 'TOTAL';
+
+#A&E attendace other
+SELECT
+  SUM(SAFE_CAST(A_E_attendances_Other_A_E_Department AS INT64))
+    AS total_other_Department
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+WHERE Org_name != 'TOTAL';
+
+# Booked type 1
+SELECT
+  SUM(SAFE_CAST(A_E_attendances_Booked_Appointments_Type_1 AS INT64))
+    AS total_Booked_Type_1
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+WHERE Org_name != 'TOTAL';
+
+#Booked type 2
+SELECT
+  SUM(SAFE_CAST(A_E_attendances_Booked_Appointments_Type_2 AS INT64))
+    AS total_Booked_Type_2
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+WHERE Org_name != 'TOTAL';
+
+#Booked Type 3
+SELECT
+  SUM(SAFE_CAST(A_E_attendances_Booked_Appointments_Other_Department AS INT64))
+    AS total_Booked_other_Department
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+WHERE Org_name != 'TOTAL';
+
+#Type 1 over 4hr
+SELECT
+  SUM(SAFE_CAST(Attendances_over_4hrs_Type_1 AS INT64))
+    AS total_Type_1_Over_4hrs
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+WHERE Org_name != 'TOTAL';
+
+#Type 2 over 4hr
+SELECT
+  SUM(SAFE_CAST(Attendances_over_4hrs_Type_2 AS INT64))
+    AS total_Type_2_Over_4hrs
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+WHERE Org_name != 'TOTAL';
+
+
+#Other over 4hr
+SELECT
+  SUM(SAFE_CAST(Attendances_over_4hrs_Other_Department AS INT64))
+    AS total_Other_Over_4hrs
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+WHERE Org_name != 'TOTAL';
+
+#Type 1 over 4hr booked
+SELECT
+  SUM(SAFE_CAST(Attendances_over_4hrs_Booked_Appointments_Type_1 AS INT64))
+    AS total_Type_1_Over_4hrs_Booked
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+WHERE Org_name != 'TOTAL';
+
+
+#Type 2 over 4hr booked
+SELECT
+  SUM(SAFE_CAST(Attendances_over_4hrs_Booked_Appointments_Type_2 AS INT64))
+    AS total_Type_2_Over_4hrs_Booked
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+WHERE Org_name != 'TOTAL';
+
+#Other over 4hr booked
+SELECT
+  SUM(SAFE_CAST(Attendances_over_4hrs_Booked_Appointments_Other_Department AS INT64))
+    AS total_Other_Over_4hrs_Booked
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+WHERE Org_name != 'TOTAL';
+
+#DTA to admission 4-12hrs
+SELECT
+  SUM(SAFE_CAST(Patients_who_have_waited_4_12_hs_from_DTA_to_admission AS INT64))
+    AS total_admission_4_12hrs
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+WHERE Org_name != 'TOTAL';
+
+#DTA to admission 12hrs+
+SELECT
+  SUM(SAFE_CAST(Patients_who_have_waited_12__hrs_from_DTA_to_admission AS INT64))
+    AS total_admission_12hrs
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+WHERE Org_name != 'TOTAL';
+
+#Emergency Type 1
+SELECT
+  SUM(SAFE_CAST(Emergency_admissions_via_A_E___Type_1 AS INT64))
+    AS total_Emergency_Type_1
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+WHERE Org_name != 'TOTAL';
+
+#Emergency Type 2
+SELECT
+  SUM(SAFE_CAST(Emergency_admissions_via_A_E___Type_2 AS INT64))
+    AS total_Emergency_Type_2
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+WHERE Org_name != 'TOTAL';
+
+
+#Emergency other
+SELECT
+  SUM(SAFE_CAST(Emergency_admissions_via_A_E___Other_A_E_department AS INT64))
+    AS total_emergency_other_department
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+WHERE Org_name != 'TOTAL';
+
+
+#Other emergency admission
+SELECT
+  SUM(SAFE_CAST(Other_emergency_admissions AS INT64))
+    AS total_other_emergency_admission
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+WHERE Org_name != 'TOTAL';
+
+
