@@ -1,0 +1,275 @@
+SELECT*
+FROM `ae-attendances-england.A_E_Dataset.September Attendances`
+
+
+CREATE OR REPLACE VIEW
+  `ae-attendances-england.A_E_Dataset.September_Attendances_Cleaned`
+AS
+
+SELECT
+  #Standardised organisation columns
+  CAST(Org_Code AS STRING) AS org_code,
+  CAST(Parent_org AS STRING) AS parent_org,
+  CAST(Org_name AS STRING) AS provider,
+
+  #A&E attendances
+  SAFE_CAST(A_E_attendances_Type_1 AS INT64)
+    AS attendances_type_1,
+
+  SAFE_CAST(A_E_attendances_Type_2 AS INT64)
+    AS attendances_type_2,
+
+  SAFE_CAST(A_E_attendances_Other_A_E_Department AS INT64)
+    AS attendances_other_department,
+
+  SAFE_CAST(A_E_attendances_Booked_Appointments_Type_1 AS INT64)
+    AS booked_attendances_type_1,
+
+  SAFE_CAST(A_E_attendances_Booked_Appointments_Type_2 AS INT64)
+    AS booked_attendances_type_2,
+
+  SAFE_CAST(A_E_attendances_Booked_Appointments_Other_Department AS INT64)
+    AS booked_attendances_other_department,
+
+  # Attendances over four hours
+  SAFE_CAST(Attendances_over_4hrs_Type_1 AS INT64)
+    AS over_4hrs_type_1,
+
+  SAFE_CAST(Attendances_over_4hrs_Type_2 AS INT64)
+    AS over_4hrs_type_2,
+
+  SAFE_CAST(Attendances_over_4hrs_Other_Department AS INT64)
+    AS over_4hrs_other_department,
+
+  SAFE_CAST(Attendances_over_4hrs_Booked_Appointments_Type_1 AS INT64)
+    AS over_4hrs_booked_type_1,
+
+  SAFE_CAST(Attendances_over_4hrs_Booked_Appointments_Type_2 AS INT64)
+    AS over_4hrs_booked_type_2,
+
+  SAFE_CAST(Attendances_over_4hrs_Booked_Appointments_Other_Department AS INT64)
+    AS over_4hrs_booked_other_department,
+
+  # Decision-to-admit waiting times
+  SAFE_CAST(Patients_who_have_waited_4_12_hs_from_DTA_to_admission AS INT64)
+    AS waits_4_to_12hrs,
+
+  SAFE_CAST(Patients_who_have_waited_12__hrs_from_DTA_to_admission AS INT64)
+    AS waits_over_12hrs,
+
+  # Emergency admissions
+  SAFE_CAST(Emergency_admissions_via_A_E___Type_1 AS INT64)
+    AS emergency_admissions_type_1,
+
+  SAFE_CAST(Emergency_admissions_via_A_E___Type_2 AS INT64)
+    AS emergency_admissions_type_2,
+
+  SAFE_CAST(Emergency_admissions_via_A_E___Other_A_E_department AS INT64)
+    AS emergency_admissions_other_department,
+
+  SAFE_CAST(Other_emergency_admissions AS INT64)
+    AS other_emergency_admissions
+
+FROM
+  `ae-attendances-england.A_E_Dataset.September Attendances`;
+
+
+
+
+#Checking it works 
+SELECT *
+FROM `ae-attendances-england.A_E_Dataset.September_Attendances_Cleaned`
+LIMIT 10;
+
+
+#any counts failed
+SELECT
+  COUNTIF(attendances_type_1 IS NULL)
+    AS null_type_1,
+  COUNTIF(attendances_type_2 IS NULL)
+    AS null_type_2,
+  COUNTIF(over_4hrs_type_1 IS NULL)
+    AS null_over_4hrs_type_1
+FROM
+  `ae-attendances-england.A_E_Dataset.September_Attendances_Cleaned`;
+
+
+#Repeating reconciliation (changing column names for other sums)
+SELECT
+  SUM(attendances_type_1) AS calculated_total
+FROM
+  `ae-attendances-england.A_E_Dataset.September_Attendances_Cleaned`
+WHERE
+  provider != 'TOTAL';
+
+
+
+
+#Total attendances, attendances over 4hrs, 4hrs performance %
+SELECT
+  # 1. Total A&E attendances
+  SUM(
+    COALESCE(attendances_type_1, 0)
+    + COALESCE(attendances_type_2, 0)
+    + COALESCE(attendances_other_department, 0)
+  ) AS total_attendances,
+
+  #2. Total attendances over 4 hrs
+  SUM(
+    COALESCE(over_4hrs_type_1, 0)
+    + COALESCE(over_4hrs_type_2, 0)
+    + COALESCE(over_4hrs_other_department, 0)
+  ) AS attendances_over_4_hours,
+
+  #3. % completed within 4 hrs
+  ROUND(
+    SAFE_DIVIDE(
+      SUM(
+        COALESCE(attendances_type_1, 0)
+        + COALESCE(attendances_type_2, 0)
+        + COALESCE(attendances_other_department, 0)
+        - COALESCE(over_4hrs_type_1, 0)
+        - COALESCE(over_4hrs_type_2, 0)
+        - COALESCE(over_4hrs_other_department, 0)
+      ),
+      SUM(
+        COALESCE(attendances_type_1, 0)
+        + COALESCE(attendances_type_2, 0)
+        + COALESCE(attendances_other_department, 0)
+      )
+    ) * 100,
+    2
+  ) AS four_hour_performance_pct
+
+FROM
+  `ae-attendances-england.A_E_Dataset.September_Attendances_Cleaned`
+
+WHERE
+  provider != 'TOTAL';
+
+
+
+#Calculated total emergency admissions & the admission-to-attendances ratio
+SELECT
+  #1. Total emergency admissions
+  SUM(
+    COALESCE(emergency_admissions_type_1, 0)
+    + COALESCE(emergency_admissions_type_2, 0)
+    + COALESCE(emergency_admissions_other_department, 0)
+    + COALESCE(other_emergency_admissions, 0)
+  ) AS total_emergency_admissions,
+
+  #2. Total A&E attendances
+  SUM(
+    COALESCE(attendances_type_1, 0)
+    + COALESCE(attendances_type_2, 0)
+    + COALESCE(attendances_other_department, 0)
+  ) AS total_attendances,
+
+  #3. Admissions-to-attendances ratio
+  ROUND(
+    SAFE_DIVIDE(
+      SUM(
+        COALESCE(emergency_admissions_type_1, 0)
+        + COALESCE(emergency_admissions_type_2, 0)
+        + COALESCE(emergency_admissions_other_department, 0)
+        + COALESCE(other_emergency_admissions, 0)
+      ),
+      SUM(
+        COALESCE(attendances_type_1, 0)
+        + COALESCE(attendances_type_2, 0)
+        + COALESCE(attendances_other_department, 0)
+      )
+    ),
+    4
+  ) AS admissions_to_attendances_ratio,
+
+  #4. Ratio expressed as a %
+  ROUND(
+    SAFE_DIVIDE(
+      SUM(
+        COALESCE(emergency_admissions_type_1, 0)
+        + COALESCE(emergency_admissions_type_2, 0)
+        + COALESCE(emergency_admissions_other_department, 0)
+        + COALESCE(other_emergency_admissions, 0)
+      ),
+      SUM(
+        COALESCE(attendances_type_1, 0)
+        + COALESCE(attendances_type_2, 0)
+        + COALESCE(attendances_other_department, 0)
+      )
+    ) * 100,
+    2
+  ) AS admissions_to_attendances_pct
+
+FROM
+  `ae-attendances-england.A_E_Dataset.September_Attendances_Cleaned`
+
+WHERE
+  provider != 'TOTAL';
+
+
+#12 hrs waits from decision to admittance
+SELECT
+  SUM(
+    COALESCE(waits_over_12hrs, 0)
+  ) AS total_12_hour_waits
+FROM
+  `ae-attendances-england.A_E_Dataset.September_Attendances_Cleaned`
+WHERE
+  provider != 'TOTAL';
+
+
+#Comparing providers for most 12 hrs wait
+SELECT
+  provider,
+  waits_over_12hrs AS patients_waiting_12_hours
+FROM
+  `ae-attendances-england.A_E_Dataset.September_Attendances_Cleaned`
+WHERE
+  provider != 'TOTAL'
+ORDER BY
+  patients_waiting_12_hours DESC;
+
+
+#Aggregating by region
+
+SELECT
+  l.`NHSER_code` AS region_code,
+  SUM(COALESCE(a.waits_over_12hrs, 0))
+    AS total_12_hour_waits
+FROM
+  `ae-attendances-england.A_E_Dataset.September_Attendances_Cleaned` AS a
+JOIN
+  `ae-attendances-england.A_E_Dataset.Nhs mapping` AS l
+ON
+  a.org_code = l.`Org_Code`
+WHERE
+  a.provider != 'TOTAL'
+GROUP BY
+  region_code
+ORDER BY
+  total_12_hour_waits DESC;
+
+#Rank trust within each region
+
+SELECT
+  l.`NHSER_code` AS region_code,
+  a.provider,
+  a.waits_over_12hrs AS patients_waiting_12_hours,
+  RANK() OVER (
+    PARTITION BY l.`NHSER_code`
+    ORDER BY a.waits_over_12hrs DESC
+  ) AS trust_rank_in_region
+FROM
+  `ae-attendances-england.A_E_Dataset.September_Attendances_Cleaned` AS a
+JOIN
+  `ae-attendances-england.A_E_Dataset.Nhs mapping` AS l
+ON
+  a.org_code = l.`Org_Code`
+WHERE
+  a.provider != 'TOTAL'
+  AND a.waits_over_12hrs IS NOT NULL
+ORDER BY
+  region_code,
+  trust_rank_in_region;
